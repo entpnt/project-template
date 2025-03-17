@@ -1,0 +1,914 @@
+{
+  "info": {
+    "name": "Project Flow API",
+    "description": "Collection for testing the Project Flow API with both OAuth 2.0 and API Key authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "string",
+      "description": "Your API key for legacy authentication"
+    },
+    {
+      "key": "user_username",
+      "value": "testuser",
+      "type": "string",
+      "description": "Username for test user account"
+    },
+    {
+      "key": "user_password",
+      "value": "TestPassword123",
+      "type": "string",
+      "description": "Password for test user account"
+    },
+    {
+      "key": "user_email",
+      "value": "testuser@example.com",
+      "type": "string",
+      "description": "Email for test user account"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "OAuth access token"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string",
+      "description": "OAuth refresh token"
+    },
+    {
+      "key": "client_id",
+      "value": "",
+      "type": "string",
+      "description": "OAuth client ID"
+    },
+    {
+      "key": "client_secret",
+      "value": "",
+      "type": "string",
+      "description": "OAuth client secret"
+    },
+    {
+      "key": "project_id",
+      "value": "",
+      "type": "string",
+      "description": "Current project ID"
+    },
+    {
+      "key": "document_id",
+      "value": "",
+      "type": "string",
+      "description": "Current document ID"
+    },
+    {
+      "key": "auth_code",
+      "value": "",
+      "type": "string",
+      "description": "OAuth authorization code (temporary)"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the API is healthy and connected to all services"
+          },
+          "response": []
+        },
+        {
+          "name": "Database Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/db",
+              "host": ["{{base_url}}"],
+              "path": ["health", "db"]
+            },
+            "description": "Check if the database connection is working and get MongoDB version"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. OAuth User Management",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{user_username}}\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Store session cookie automatically"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{user_username}}\",\n  \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login to the application (creates session)"
+          },
+          "response": []
+        },
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Get information about the currently authenticated user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. OAuth Client Management",
+      "item": [
+        {
+          "name": "Create OAuth Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.client_id) {",
+                  "    pm.collectionVariables.set('client_id', response.data.client_id);",
+                  "    pm.collectionVariables.set('client_secret', response.data.client_secret);",
+                  "    console.log('OAuth client credentials saved to collection variables');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Test Application\",\n  \"redirect_uris\": \"http://localhost:8000/callback http://127.0.0.1:8000/callback\",\n  \"client_uri\": \"http://localhost:8000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/client",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "client"]
+            },
+            "description": "Create a new OAuth client"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. OAuth Authorization Flow",
+      "item": [
+        {
+          "name": "Authorization URL (Browser Step)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/authorize?client_id={{client_id}}&response_type=code&redirect_uri=http://localhost:8000/callback&scope=profile email&state=xyz123",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "authorize"],
+              "query": [
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "response_type",
+                  "value": "code"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "http://localhost:8000/callback"
+                },
+                {
+                  "key": "scope",
+                  "value": "profile email"
+                },
+                {
+                  "key": "state",
+                  "value": "xyz123"
+                }
+              ]
+            },
+            "description": "Generate authorization URL for browser flow. Copy this URL into your browser. After authorizing, extract the 'code' parameter from the redirected URL and save it as the collection variable 'auth_code'."
+          },
+          "response": []
+        },
+        {
+          "name": "Exchange Code for Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.access_token) {",
+                  "    pm.collectionVariables.set('access_token', response.access_token);",
+                  "    console.log('Access token saved to collection variable');",
+                  "}",
+                  "if (response.refresh_token) {",
+                  "    pm.collectionVariables.set('refresh_token', response.refresh_token);",
+                  "    console.log('Refresh token saved to collection variable');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "text"
+                },
+                {
+                  "key": "code",
+                  "value": "{{auth_code}}",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "http://localhost:8000/callback",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "token"]
+            },
+            "description": "Exchange authorization code for an access token and refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.access_token) {",
+                  "    pm.collectionVariables.set('access_token', response.access_token);",
+                  "    console.log('Access token refreshed and saved to collection variable');",
+                  "}",
+                  "if (response.refresh_token) {",
+                  "    pm.collectionVariables.set('refresh_token', response.refresh_token);",
+                  "    console.log('New refresh token saved to collection variable');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "refresh_token",
+                  "type": "text"
+                },
+                {
+                  "key": "refresh_token",
+                  "value": "{{refresh_token}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "token"]
+            },
+            "description": "Refresh an access token using a refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Token Introspection",
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "password",
+                  "value": "{{client_secret}}",
+                  "type": "string"
+                },
+                {
+                  "key": "username",
+                  "value": "{{client_id}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/introspect",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "introspect"]
+            },
+            "description": "Check if an access token is valid and get token information"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "text"
+                },
+                {
+                  "key": "token_type_hint",
+                  "value": "access_token",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/revoke",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "revoke"]
+            },
+            "description": "Revoke an access token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Projects",
+      "item": [
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Get all projects for the authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.project_id) {",
+                  "    pm.collectionVariables.set('project_id', response.data.project_id);",
+                  "    console.log('Project ID saved to collection variable');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Project\",\n  \"description\": \"A project for testing the API\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Create a new project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}"]
+            },
+            "description": "Get a project by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"description\": \"Updated project description\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}"]
+            },
+            "description": "Update a project"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Documents",
+      "item": [
+        {
+          "name": "Get Project Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}", "documents"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "specification",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all documents for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.document_id) {",
+                  "    pm.collectionVariables.set('document_id', response.data.document_id);",
+                  "    console.log('Document ID saved to collection variable');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_type\": \"specification\",\n  \"content\": \"This is a test document for the project.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}", "documents"]
+            },
+            "description": "Create a new document for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Document",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/documents/{{document_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "documents", "{{document_id}}"]
+            },
+            "description": "Get a document by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Document",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated document content goes here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/documents/{{document_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "documents", "{{document_id}}"]
+            },
+            "description": "Update a document's content"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Conversations",
+      "item": [
+        {
+          "name": "Get Project Conversations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}", "conversations"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get conversation history for a project"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Conversation Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"{{user_username}}\",\n  \"message\": \"This is a test message for the project.\",\n  \"metadata\": {\n    \"source\": \"web\",\n    \"importance\": \"normal\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}", "conversations"]
+            },
+            "description": "Add a message to project conversations"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Admin",
+      "item": [
+        {
+          "name": "System Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "disabled": false
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "stats"]
+            },
+            "description": "Get system statistics (admin only)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+} 
